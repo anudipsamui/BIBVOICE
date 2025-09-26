@@ -1,104 +1,150 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Number Logger (Type + Speak)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Number Transcriber</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input[type="text"] { font-size: 1.2em; padding: 5px; width: 150px; }
+    input[type="tel"] { font-size: 1.2em; padding: 5px; width: 200px; }
+    button { font-size: 1em; margin: 5px; padding: 5px 10px; }
+    table { border-collapse: collapse; margin-top: 15px; width: 100%; max-height: 300px; display: block; overflow-y: auto; }
+    table, th, td { border: 1px solid #ccc; }
+    th, td { padding: 8px; text-align: left; }
+  </style>
 </head>
-<body style="font-family:sans-serif; padding:20px;">
+<body>
 
-  <h2>Number Logger (Type or Speak → WhatsApp CSV)</h2>
+  <h2>Number Transcriber</h2>
 
-  Device Name:<br>
-  <input id="device" placeholder="Enter your device name"><br><br>
+  Device Name: <input id="deviceInput" type="text" placeholder="Enter device name" /><br><br>
+  WhatsApp Number (with country code): <input id="waNumberInput" type="tel" placeholder="e.g., 919876543210" /><br><br>
 
-  WhatsApp Number (with country code):<br>
-  <input id="waNumber" placeholder="e.g., 919876543210"><br><br>
+  <button onclick="startListening()">🎤 Start Listening</button>
+  <button onclick="stopListening()">⏹ Stop Listening</button>
+  <button onclick="downloadCSV()">⬇️ Export CSV</button>
+  <button onclick="sendWhatsAppCSV()">📤 Send CSV to WhatsApp</button><br><br>
 
-  Number (type manually if needed):<br>
-  <input id="number" placeholder="Type number"><br>
-  <button onclick="submitNumber()">Submit Number</button><br><br>
+  Type Number: <input id="numberInput" type="text" placeholder="Enter number" />
 
-  <button id="startBtn">Start Continuous Listening 🎤</button>
-  <button onclick="sendWhatsAppCSV()">Send CSV to WhatsApp</button>
+  <table id="dataTable">
+    <tr><th>Device</th><th>Number</th><th>Time</th></tr>
+  </table>
 
-  <h3>Logs:</h3>
-  <div id="log" style="border:1px solid #ccc; padding:10px; height:200px; overflow:auto;"></div>
+  <script>
+    let recognition;
+    let listening = false;
+    let results = [["Device","Number","Time"]];
 
-<script>
-// Load saved data
-let savedData = JSON.parse(localStorage.getItem("numbers") || "[]");
-const logDiv = document.getElementById("log");
-savedData.forEach(r => logDiv.innerHTML += `${r.device} | ${r.number} | ${r.timestamp}<br>`);
+    // 24-hour timestamp
+    function getCurrentTimestamp() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      return `${hours}:${minutes}:${seconds}`;
+    }
 
-// Submit manually typed number
-function submitNumber() {
-  const device = document.getElementById("device").value.trim();
-  const number = document.getElementById("number").value.trim();
-  if(!device || !number) return alert("Enter device name and number");
-  saveNumber(device, number);
-  document.getElementById("number").value = "";
-}
+    function addRow(device, number) {
+      const time = getCurrentTimestamp();
+      results.push([device, number, time]);
 
-// Save number (common function)
-function saveNumber(device, number) {
-  const timestamp = new Date().toLocaleString();
-  logDiv.innerHTML += `${device} | ${number} | ${timestamp}<br>`;
-  savedData.push({device, number, timestamp});
-  localStorage.setItem("numbers", JSON.stringify(savedData));
-}
+      const table = document.getElementById("dataTable");
+      const row = table.insertRow();
+      row.insertCell(0).textContent = device;
+      row.insertCell(1).textContent = number;
+      row.insertCell(2).textContent = time;
 
-// Continuous speech recognition
-let recognition;
-document.getElementById("startBtn").onclick = function() {
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    return alert("Speech recognition not supported in this browser");
-  }
+      // Auto-scroll table to show latest row
+      table.scrollTop = table.scrollHeight;
+    }
 
-  recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-  recognition.continuous = true;
-  recognition.interimResults = false;
-  recognition.lang = 'en-US';
+    // Continuous speech recognition
+    function startListening() {
+      const device = document.getElementById("deviceInput").value.trim();
+      if (!device) return alert("Enter device name first");
 
-  recognition.onresult = function(event) {
-    const device = document.getElementById("device").value.trim();
-    if(!device) return alert("Enter device name first");
+      if (!('webkitSpeechRecognition' in window)) {
+        alert("Speech recognition not supported. Use Chrome.");
+        return;
+      }
+      recognition = new webkitSpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.continuous = true;
+      recognition.interimResults = false;
 
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      if(event.results[i].isFinal) {
-        let spoken = event.results[i][0].transcript.replace(/\D/g,''); // digits only
-        if(spoken) saveNumber(device, spoken);
+      recognition.onresult = function(event) {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            const spoken = event.results[i][0].transcript.trim();
+            if (/^\d+$/.test(spoken)) {
+              addRow(device, spoken);
+            }
+          }
+        }
+      };
+
+      recognition.onerror = function(e) {
+        console.error("Speech recognition error:", e);
+      };
+
+      recognition.onend = function() {
+        console.log("Restarting recognition...");
+        recognition.start();
+      };
+
+      recognition.start();
+      listening = true;
+      alert("Listening started! Speak numbers to save automatically.");
+    }
+
+    function stopListening() {
+      if (recognition && listening) {
+        recognition.stop();
+        listening = false;
       }
     }
-  }
 
-  recognition.onerror = function(event) {
-    console.error("Speech recognition error:", event.error);
-  }
+    // Auto-save typed numbers
+    const numberInput = document.getElementById("numberInput");
+    numberInput.addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        const device = document.getElementById("deviceInput").value.trim();
+        const value = numberInput.value.trim();
+        if (!device) return alert("Enter device name first");
+        if (/^\d+$/.test(value)) {
+          addRow(device, value);
+          numberInput.value = "";
+        } else {
+          alert("Please enter digits only.");
+        }
+      }
+    });
 
-  recognition.onend = function() {
-    console.log("Restarting recognition...");
-    recognition.start(); // restart automatically
-  }
+    // Export CSV
+    function downloadCSV() {
+      let csvContent = results.map(e => e.join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "numbers.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
 
-  recognition.start();
-  alert("Continuous listening started! Speak numbers, they will be saved automatically.");
-}
+    // Send CSV to WhatsApp
+    function sendWhatsAppCSV() {
+      const waNumber = document.getElementById("waNumberInput").value.trim();
+      if (!waNumber) return alert("Enter WhatsApp number with country code");
+      if (results.length <= 1) return alert("No numbers logged yet");
 
-// Send CSV to WhatsApp
-function sendWhatsAppCSV() {
-  const waNumber = document.getElementById("waNumber").value.trim();
-  if(!waNumber) return alert("Enter WhatsApp number with country code");
-  if(savedData.length === 0) return alert("No numbers logged yet");
-
-  // Build CSV text
-  let csvText = "Device,Number,Timestamp\n";
-  csvText += savedData.map(r => `${r.device},${r.number},${r.timestamp}`).join('\n');
-  csvText = encodeURIComponent(csvText);
-
-  // Open WhatsApp
-  const url = `https://wa.me/${waNumber}?text=${csvText}`;
-  window.open(url, '_blank');
-}
-</script>
-
+      let csvText = results.map(r => r.join(",")).join("\n");
+      csvText = encodeURIComponent(csvText);
+      const url = `https://wa.me/${waNumber}?text=${csvText}`;
+      window.open(url, '_blank');
+    }
+  </script>
 </body>
 </html>
