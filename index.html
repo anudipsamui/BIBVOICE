@@ -6,8 +6,7 @@
   <title>Number Transcriber</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
-    input[type="text"] { font-size: 1.2em; padding: 5px; width: 150px; }
-    input[type="tel"] { font-size: 1.2em; padding: 5px; width: 200px; }
+    input[type="text"], input[type="tel"] { font-size: 1.2em; padding: 5px; margin-bottom: 5px; width: 200px; }
     button { font-size: 1em; margin: 5px; padding: 5px 10px; }
     table { border-collapse: collapse; margin-top: 15px; width: 100%; max-height: 300px; display: block; overflow-y: auto; }
     table, th, td { border: 1px solid #ccc; }
@@ -16,135 +15,150 @@
 </head>
 <body>
 
-  <h2>Number Transcriber</h2>
+<h2>Number Transcriber</h2>
 
-  Device Name: <input id="deviceInput" type="text" placeholder="Enter device name" /><br><br>
-  WhatsApp Number (with country code): <input id="waNumberInput" type="tel" placeholder="e.g., 919876543210" /><br><br>
+Device Name: <input id="deviceInput" type="text" placeholder="Enter device name" /><br>
+WhatsApp Number (with country code): <input id="waNumberInput" type="tel" placeholder="e.g., 919876543210" /><br><br>
 
-  <button onclick="startListening()">🎤 Start Listening</button>
-  <button onclick="stopListening()">⏹ Stop Listening</button>
-  <button onclick="downloadCSV()">⬇️ Export CSV</button>
-  <button onclick="sendWhatsAppCSV()">📤 Send CSV to WhatsApp</button><br><br>
+<button onclick="startListening()">🎤 Start Listening</button>
+<button onclick="stopListening()">⏹ Stop Listening</button>
+<button onclick="downloadCSV()">⬇️ Export CSV</button>
+<button onclick="sendWhatsAppCSV()">📤 Send CSV to WhatsApp</button><br><br>
 
-  Type Number: <input id="numberInput" type="text" placeholder="Enter number" />
+Type Number: <input id="numberInput" type="text" placeholder="Enter number" />
 
-  <table id="dataTable">
-    <tr><th>Device</th><th>Number</th><th>Time</th></tr>
-  </table>
+<table id="dataTable">
+  <tr><th>Device</th><th>Number</th><th>Time</th></tr>
+</table>
 
-  <script>
-    let recognition;
-    let listening = false;
-    let results = [["Device","Number","Time"]];
+<script>
+let recognition;
+let listening = false;
+let results = [["Device","Number","Time"]];
 
-    // 24-hour timestamp
-    function getCurrentTimestamp() {
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-      return `${hours}:${minutes}:${seconds}`;
-    }
+// 24-hour timestamp
+function getCurrentTimestamp() {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2,'0');
+  const minutes = String(now.getMinutes()).padStart(2,'0');
+  const seconds = String(now.getSeconds()).padStart(2,'0');
+  return `${hours}:${minutes}:${seconds}`;
+}
 
-    function addRow(device, number) {
-      const time = getCurrentTimestamp();
-      results.push([device, number, time]);
+// Add a row to table
+function addRow(device, number) {
+  const time = getCurrentTimestamp();
+  results.push([device, number, time]);
 
-      const table = document.getElementById("dataTable");
-      const row = table.insertRow();
-      row.insertCell(0).textContent = device;
-      row.insertCell(1).textContent = number;
-      row.insertCell(2).textContent = time;
+  const table = document.getElementById("dataTable");
+  const row = table.insertRow();
+  row.insertCell(0).textContent = device;
+  row.insertCell(1).textContent = number;
+  row.insertCell(2).textContent = time;
 
-      // Auto-scroll table to show latest row
-      table.scrollTop = table.scrollHeight;
-    }
+  // Auto-scroll to latest row
+  table.scrollTop = table.scrollHeight;
+}
 
-    // Continuous speech recognition
-    function startListening() {
-      const device = document.getElementById("deviceInput").value.trim();
-      if (!device) return alert("Enter device name first");
+// Convert spoken words to digits
+function spokenToDigits(spoken) {
+  spoken = spoken.toLowerCase();
+  // Handle double/triple zeros
+  spoken = spoken.replace(/triple zero/g, '000')
+                 .replace(/double zero/g, '00');
+  // Remove spaces and non-digit characters
+  spoken = spoken.replace(/\D/g, '');
+  return spoken;
+}
 
-      if (!('webkitSpeechRecognition' in window)) {
-        alert("Speech recognition not supported. Use Chrome.");
-        return;
-      }
-      recognition = new webkitSpeechRecognition();
-      recognition.lang = "en-US";
-      recognition.continuous = true;
-      recognition.interimResults = false;
+// Start continuous speech recognition
+function startListening() {
+  const device = document.getElementById("deviceInput").value.trim();
+  if (!device) return alert("Enter device name first");
 
-      recognition.onresult = function(event) {
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          if (event.results[i].isFinal) {
-            const spoken = event.results[i][0].transcript.trim();
-            if (/^\d+$/.test(spoken)) {
-              addRow(device, spoken);
-            }
-          }
-        }
-      };
+  if (!('webkitSpeechRecognition' in window)) {
+    alert("Speech recognition not supported. Use Chrome.");
+    return;
+  }
 
-      recognition.onerror = function(e) {
-        console.error("Speech recognition error:", e);
-      };
+  recognition = new webkitSpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.continuous = true;
+  recognition.interimResults = false;
 
-      recognition.onend = function() {
-        console.log("Restarting recognition...");
-        recognition.start();
-      };
-
-      recognition.start();
-      listening = true;
-      alert("Listening started! Speak numbers to save automatically.");
-    }
-
-    function stopListening() {
-      if (recognition && listening) {
-        recognition.stop();
-        listening = false;
-      }
-    }
-
-    // Auto-save typed numbers
-    const numberInput = document.getElementById("numberInput");
-    numberInput.addEventListener("keypress", function(e) {
-      if (e.key === "Enter") {
-        const device = document.getElementById("deviceInput").value.trim();
-        const value = numberInput.value.trim();
-        if (!device) return alert("Enter device name first");
-        if (/^\d+$/.test(value)) {
-          addRow(device, value);
-          numberInput.value = "";
-        } else {
-          alert("Please enter digits only.");
+  recognition.onresult = function(event) {
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        let spoken = event.results[i][0].transcript.trim();
+        let digits = spokenToDigits(spoken);
+        if (digits.length > 0) {
+          addRow(device, digits);
         }
       }
-    });
-
-    // Export CSV
-    function downloadCSV() {
-      let csvContent = results.map(e => e.join(",")).join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "numbers.csv";
-      a.click();
-      URL.revokeObjectURL(url);
     }
+  };
 
-    // Send CSV to WhatsApp
-    function sendWhatsAppCSV() {
-      const waNumber = document.getElementById("waNumberInput").value.trim();
-      if (!waNumber) return alert("Enter WhatsApp number with country code");
-      if (results.length <= 1) return alert("No numbers logged yet");
+  recognition.onerror = function(e) {
+    console.error("Speech recognition error:", e);
+  };
 
-      let csvText = results.map(r => r.join(",")).join("\n");
-      csvText = encodeURIComponent(csvText);
-      const url = `https://wa.me/${waNumber}?text=${csvText}`;
-      window.open(url, '_blank');
+  recognition.onend = function() {
+    if(listening) recognition.start(); // auto-restart
+  };
+
+  recognition.start();
+  listening = true;
+  alert("Listening started! Speak numbers to save automatically.");
+}
+
+// Stop listening
+function stopListening() {
+  if (recognition && listening) {
+    recognition.stop();
+    listening = false;
+  }
+}
+
+// Auto-save typed numbers
+const numberInput = document.getElementById("numberInput");
+numberInput.addEventListener("keypress", function(e){
+  if (e.key === "Enter") {
+    const device = document.getElementById("deviceInput").value.trim();
+    const value = numberInput.value.trim();
+    if (!device) return alert("Enter device name first");
+    if (/^\d+$/.test(value)) {
+      addRow(device, value);
+      numberInput.value = "";
+    } else {
+      alert("Please enter digits only.");
     }
-  </script>
+  }
+});
+
+// Export CSV
+function downloadCSV() {
+  let csvContent = results.map(r => r.join(",")).join("\n");
+  const blob = new Blob([csvContent], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "numbers.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Send CSV to WhatsApp
+function sendWhatsAppCSV() {
+  const waNumber = document.getElementById("waNumberInput").value.trim();
+  if (!waNumber) return alert("Enter WhatsApp number with country code");
+  if (results.length <= 1) return alert("No numbers logged yet");
+
+  let csvText = results.map(r => r.join(",")).join("\n");
+  csvText = encodeURIComponent(csvText);
+  const url = `https://wa.me/${waNumber}?text=${csvText}`;
+  window.open(url, '_blank');
+}
+</script>
+
 </body>
 </html>
