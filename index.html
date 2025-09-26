@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Number Logger (Type + Speak)</title>
+</head>
+<body style="font-family:sans-serif; padding:20px;">
+
+  <h2>Number Logger (Type or Speak → WhatsApp CSV)</h2>
+
+  Device Name:<br>
+  <input id="device" placeholder="Enter your device name"><br><br>
+
+  WhatsApp Number (with country code):<br>
+  <input id="waNumber" placeholder="e.g., 919876543210"><br><br>
+
+  Number (type manually if needed):<br>
+  <input id="number" placeholder="Type number"><br>
+  <button onclick="submitNumber()">Submit Number</button><br><br>
+
+  <button id="startBtn">Start Continuous Listening 🎤</button>
+  <button onclick="sendWhatsAppCSV()">Send CSV to WhatsApp</button>
+
+  <h3>Logs:</h3>
+  <div id="log" style="border:1px solid #ccc; padding:10px; height:200px; overflow:auto;"></div>
+
+<script>
+// Load saved data
+let savedData = JSON.parse(localStorage.getItem("numbers") || "[]");
+const logDiv = document.getElementById("log");
+savedData.forEach(r => logDiv.innerHTML += `${r.device} | ${r.number} | ${r.timestamp}<br>`);
+
+// Submit manually typed number
+function submitNumber() {
+  const device = document.getElementById("device").value.trim();
+  const number = document.getElementById("number").value.trim();
+  if(!device || !number) return alert("Enter device name and number");
+  saveNumber(device, number);
+  document.getElementById("number").value = "";
+}
+
+// Save number (common function)
+function saveNumber(device, number) {
+  const timestamp = new Date().toLocaleString();
+  logDiv.innerHTML += `${device} | ${number} | ${timestamp}<br>`;
+  savedData.push({device, number, timestamp});
+  localStorage.setItem("numbers", JSON.stringify(savedData));
+}
+
+// Continuous speech recognition
+let recognition;
+document.getElementById("startBtn").onclick = function() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    return alert("Speech recognition not supported in this browser");
+  }
+
+  recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+
+  recognition.onresult = function(event) {
+    const device = document.getElementById("device").value.trim();
+    if(!device) return alert("Enter device name first");
+
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if(event.results[i].isFinal) {
+        let spoken = event.results[i][0].transcript.replace(/\D/g,''); // digits only
+        if(spoken) saveNumber(device, spoken);
+      }
+    }
+  }
+
+  recognition.onerror = function(event) {
+    console.error("Speech recognition error:", event.error);
+  }
+
+  recognition.onend = function() {
+    console.log("Restarting recognition...");
+    recognition.start(); // restart automatically
+  }
+
+  recognition.start();
+  alert("Continuous listening started! Speak numbers, they will be saved automatically.");
+}
+
+// Send CSV to WhatsApp
+function sendWhatsAppCSV() {
+  const waNumber = document.getElementById("waNumber").value.trim();
+  if(!waNumber) return alert("Enter WhatsApp number with country code");
+  if(savedData.length === 0) return alert("No numbers logged yet");
+
+  // Build CSV text
+  let csvText = "Device,Number,Timestamp\n";
+  csvText += savedData.map(r => `${r.device},${r.number},${r.timestamp}`).join('\n');
+  csvText = encodeURIComponent(csvText);
+
+  // Open WhatsApp
+  const url = `https://wa.me/${waNumber}?text=${csvText}`;
+  window.open(url, '_blank');
+}
+</script>
+
+</body>
+</html>
