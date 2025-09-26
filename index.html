@@ -57,7 +57,9 @@ function addDevice() {
         recognition: null,
         listening: false,
         results: [["Device","Number","Time"]],
-        lastHighlightedRow: null
+        lastHighlightedRow: null,
+        tempBuffer: '',
+        pauseTimer: null
     };
 
     const startBtn = section.querySelector(".startBtn");
@@ -70,7 +72,7 @@ function addDevice() {
     const statusDiv = section.querySelector(".status");
     const table = section.querySelector("table");
 
-    // Fast add row function per device
+    // Add row function
     function addRow(number) {
         const time = getCurrentTimestamp();
         const deviceName = deviceInput.value.trim() || 'Unknown';
@@ -89,7 +91,7 @@ function addDevice() {
         while(table.rows.length > 101) table.deleteRow(table.rows.length - 1);
     }
 
-    // Convert spoken words to digits
+    // Convert spoken words to digits with double/triple zero support
     function spokenToDigits(spoken) {
         spoken = spoken.toLowerCase();
         spoken = spoken.replace(/triple zero/g,'000')
@@ -141,8 +143,17 @@ function addDevice() {
         recognition.onresult = function(event) {
             for(let i=event.resultIndex;i<event.results.length;i++){
                 let spoken = event.results[i][0].transcript.trim();
-                let digits = spokenToDigits(spoken);
-                if(digits.length > 0) addRow(digits);
+                deviceData.tempBuffer = spokenToDigits(spoken);
+
+                if(deviceData.pauseTimer) clearTimeout(deviceData.pauseTimer);
+
+                // Save number only after 700ms of pause
+                deviceData.pauseTimer = setTimeout(() => {
+                    if(deviceData.tempBuffer.length > 0) {
+                        addRow(deviceData.tempBuffer);
+                        deviceData.tempBuffer = '';
+                    }
+                }, 700);
             }
         };
 
@@ -165,7 +176,7 @@ function addDevice() {
         }
     }
 
-    // Typed numbers
+    // Typed numbers auto-save
     numberInput.addEventListener("keypress", function(e){
         if(e.key === "Enter"){
             const value = numberInput.value.trim();
