@@ -94,7 +94,10 @@ if(localStorage.getItem("bibvoiceResults")) {
 // 24-hour timestamp
 function getCurrentTimestamp() {
   const now = new Date();
-  return now.toLocaleTimeString();
+  const hours = String(now.getHours()).padStart(2,'0');
+  const minutes = String(now.getMinutes()).padStart(2,'0');
+  const seconds = String(now.getSeconds()).padStart(2,'0');
+  return `${hours}:${minutes}:${seconds}`;
 }
 
 // Convert spoken words to digits
@@ -147,9 +150,11 @@ document.getElementById("manualInput").addEventListener("keydown", e => {
 
 // Start listening
 function startListening() {
+  if (listening) return; // already listening
+
   const device = document.getElementById("deviceInput").value.trim() || "Speech";
   if (!('webkitSpeechRecognition' in window)) {
-    alert("Speech recognition not supported in this browser");
+    alert("Speech recognition not supported. Use Chrome or Edge.");
     return;
   }
 
@@ -157,6 +162,10 @@ function startListening() {
   recognition.lang = "en-US";
   recognition.continuous = true;
   recognition.interimResults = false;
+
+  recognition.onstart = function() {
+    console.log("Speech recognition started");
+  };
 
   recognition.onresult = function(event) {
     for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -169,7 +178,7 @@ function startListening() {
   };
 
   recognition.onerror = function(e) {
-    console.error("Speech recognition error:", e);
+    console.error("Speech recognition error:", e.error);
   };
 
   recognition.onend = function() {
