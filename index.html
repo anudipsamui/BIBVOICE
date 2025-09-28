@@ -6,34 +6,126 @@
 <title>SPORTOLIC TECH - BIBVOICE</title>
 <style>
 body { font-family: sans-serif; padding: 20px; }
-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
-header img { height: 60px; }
+header { margin-bottom: 20px; }
 header h2 { margin: 0; font-size: 1.8em; }
-input[type="text"], input[type="tel"] { font-size: 1.2em; padding: 5px; margin-bottom: 5px; width: 200px; }
-button { font-size: 1em; margin: 5px; padding: 5px 10px; }
-table { border-collapse: collapse; margin-top: 15px; width: 100%; max-height: 300px; display: block; overflow-y: auto; }
+input[type="text"], input[type="tel"] {
+  font-size: 1.1em; padding: 5px; margin: 5px 0; width: 220px;
+}
+button {
+  font-size: 1em; margin: 5px; padding: 6px 12px; cursor: pointer;
+}
+table { border-collapse: collapse; margin-top: 10px; width: 100%; }
 table, th, td { border: 1px solid #ccc; }
-th, td { padding: 8px; text-align: left; }
+th, td { padding: 6px 10px; text-align: left; }
 .highlight { background-color: #ffff99; }
-.status { margin-bottom: 10px; font-weight: bold; }
-.device-section { margin-bottom: 40px; padding-bottom: 10px; border-bottom: 2px solid #ccc; }
+.status { margin-bottom: 8px; font-weight: bold; }
+.device-section {
+  margin-bottom: 40px; padding: 10px; border: 2px solid #ccc; border-radius: 6px;
+}
 </style>
 </head>
 <body>
 
 <header>
-    <img src="SPORTROLIC TECH LOGO.png" alt="SPORTOLIC TECH Logo">
     <h2>SPORTOLIC TECH - BIBVOICE</h2>
 </header>
 
 <div id="devicesContainer"></div>
-
 <button onclick="addDevice()">➕ Add Device</button>
 
-<!-- (The rest of your script and HTML stays the same) -->
-
 <script>
-// your existing JavaScript code here...
+let deviceCount = 0;
+let savedData = JSON.parse(localStorage.getItem("bibvoiceData")) || {};
+
+function saveData() {
+  localStorage.setItem("bibvoiceData", JSON.stringify(savedData));
+}
+
+function addDevice(loadId = null) {
+  deviceCount++;
+  const container = document.getElementById("devicesContainer");
+
+  const section = document.createElement("div");
+  section.className = "device-section";
+  section.id = `device-${deviceCount}`;
+
+  section.innerHTML = `
+    <div class="status">📱 Device ${deviceCount}</div>
+    <label>BIB: <input type="text" id="bib-${deviceCount}" placeholder="Enter BIB"></label><br>
+    <label>Phone: <input type="tel" id="phone-${deviceCount}" placeholder="Enter Phone"></label><br>
+    <button onclick="addEntry(${deviceCount})">➕ Add Entry</button>
+    <table id="table-${deviceCount}">
+      <thead>
+        <tr>
+          <th>BIB</th>
+          <th>Phone</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  `;
+
+  container.appendChild(section);
+
+  // Load existing entries if present
+  if (savedData[`device-${deviceCount}`]) {
+    savedData[`device-${deviceCount}`].forEach(entry => {
+      insertRow(deviceCount, entry.bib, entry.phone, entry.timestamp, false);
+    });
+  }
+}
+
+function addEntry(deviceId) {
+  const bibInput = document.getElementById(`bib-${deviceId}`);
+  const phoneInput = document.getElementById(`phone-${deviceId}`);
+  const bib = bibInput.value.trim();
+  const phone = phoneInput.value.trim();
+
+  if (!bib || !phone) {
+    alert("Please enter both BIB and Phone!");
+    return;
+  }
+
+  const timestamp = new Date().toLocaleTimeString();
+  insertRow(deviceId, bib, phone, timestamp, true);
+
+  // Clear inputs
+  bibInput.value = "";
+  phoneInput.value = "";
+}
+
+function insertRow(deviceId, bib, phone, timestamp, save = false) {
+  const tableBody = document.getElementById(`table-${deviceId}`).querySelector("tbody");
+
+  const row = document.createElement("tr");
+  row.innerHTML = `
+    <td>${bib}</td>
+    <td>${phone}</td>
+    <td>${timestamp}</td>
+  `;
+  tableBody.appendChild(row);
+
+  // Highlight row briefly
+  row.classList.add("highlight");
+  setTimeout(() => row.classList.remove("highlight"), 1500);
+
+  if (save) {
+    if (!savedData[`device-${deviceId}`]) savedData[`device-${deviceId}`] = [];
+    savedData[`device-${deviceId}`].push({ bib, phone, timestamp });
+    saveData();
+  }
+}
+
+// Restore data on page load
+window.onload = () => {
+  const keys = Object.keys(savedData);
+  if (keys.length === 0) {
+    addDevice();
+  } else {
+    keys.forEach(() => addDevice());
+  }
+};
 </script>
 
 </body>
