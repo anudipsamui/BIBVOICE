@@ -69,12 +69,42 @@ function addRow(device, number) {
   table.scrollTop = 0; // keep top visible
 }
 
-// Convert spoken words to digits
+// Natural number speech recognition
 function spokenToDigits(spoken) {
-  spoken = spoken.toLowerCase();
+  spoken = spoken.toLowerCase().trim();
   spoken = spoken.replace(/triple zero/g,'000').replace(/double zero/g,'00');
-  spoken = spoken.replace(/\D/g,'');
-  return spoken;
+
+  const numbers = {
+    "zero":0,"oh":0,"o":0,
+    "one":1,"two":2,"three":3,"four":4,"five":5,
+    "six":6,"seven":7,"eight":8,"nine":9,
+    "ten":10,"eleven":11,"twelve":12,"thirteen":13,
+    "fourteen":14,"fifteen":15,"sixteen":16,"seventeen":17,
+    "eighteen":18,"nineteen":19,"twenty":20,"thirty":30,
+    "forty":40,"fifty":50,"sixty":60,"seventy":70,
+    "eighty":80,"ninety":90,"hundred":100
+  };
+
+  const words = spoken.split(/\s+/);
+  let result = 0;
+  let temp = 0;
+
+  for(let w of words) {
+    if(numbers.hasOwnProperty(w)) {
+      let num = numbers[w];
+      if(num === 100) {
+        temp *= 100;
+      } else if(num < 10) {
+        temp = temp*10 + num;
+      } else if(num >= 10 && num < 100) {
+        temp += num;
+      } else {
+        temp += num;
+      }
+    }
+  }
+  result += temp;
+  return result.toString();
 }
 
 // Start continuous speech recognition
