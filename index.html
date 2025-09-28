@@ -41,6 +41,7 @@ Type Number: <input id="numberInput" type="text" placeholder="Enter number" />
 let recognition;
 let listening = false;
 let results = [["Device","Number","Time"]];
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbz-55moZSvtiHNdACU3o400gxQRkJgi0DMDsmLl1nFJZ2Rt2drzlSSpPxtY90BicDv9/exec";
 
 // 24-hour timestamp
 function getCurrentTimestamp() {
@@ -66,7 +67,7 @@ function addRow(device, number) {
   row.classList.add("highlight");
   table.scrollTop = 0;
 
-  // Send live to Google Sheet
+  // send live to Google Sheet
   sendToGoogleSheet(device, number, time);
 }
 
@@ -169,8 +170,7 @@ function sendWhatsAppCSV(){
 
 // Send live to Google Sheet
 function sendToGoogleSheet(device, number, time) {
-  const url = "https://script.google.com/macros/s/AKfycbz-55moZSvtiHNdACU3o400gxQRkJgi0DMDsmLl1nFJZ2Rt2drzlSSpPxtY90BicDv9/exec";
-  fetch(url, {
+  fetch(GOOGLE_SHEET_URL, {
     method: "POST",
     body: JSON.stringify({device, number, time}),
     headers: {'Content-Type':'application/json'}
