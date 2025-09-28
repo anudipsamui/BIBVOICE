@@ -1,131 +1,163 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>SPORTOLIC TECH - BIBVOICE</title>
-<style>
-body { font-family: sans-serif; padding: 20px; }
-header { margin-bottom: 20px; }
-header h2 { margin: 0; font-size: 1.8em; }
-input[type="text"], input[type="tel"] {
-  font-size: 1.1em; padding: 5px; margin: 5px 0; width: 220px;
-}
-button {
-  font-size: 1em; margin: 5px; padding: 6px 12px; cursor: pointer;
-}
-table { border-collapse: collapse; margin-top: 10px; width: 100%; }
-table, th, td { border: 1px solid #ccc; }
-th, td { padding: 6px 10px; text-align: left; }
-.highlight { background-color: #ffff99; }
-.status { margin-bottom: 8px; font-weight: bold; }
-.device-section {
-  margin-bottom: 40px; padding: 10px; border: 2px solid #ccc; border-radius: 6px;
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Number Transcriber</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input[type="text"], input[type="tel"] { font-size: 1.2em; padding: 5px; margin-bottom: 5px; width: 200px; }
+    button { font-size: 1em; margin: 5px; padding: 5px 10px; }
+    table { border-collapse: collapse; margin-top: 15px; width: 100%; max-height: 300px; display: block; overflow-y: auto; }
+    table, th, td { border: 1px solid #ccc; }
+    th, td { padding: 8px; text-align: left; }
+  </style>
 </head>
 <body>
 
-<header>
-    <h2>SPORTOLIC TECH - BIBVOICE</h2>
-</header>
+<h2>Number Transcriber</h2>
 
-<div id="devicesContainer"></div>
-<button onclick="addDevice()">➕ Add Device</button>
+Device Name: <input id="deviceInput" type="text" placeholder="Enter device name" /><br>
+WhatsApp Number (with country code): <input id="waNumberInput" type="tel" placeholder="e.g., 919876543210" /><br><br>
+
+<button onclick="startListening()">🎤 Start Listening</button>
+<button onclick="stopListening()">⏹ Stop Listening</button>
+<button onclick="downloadCSV()">⬇️ Export CSV</button>
+<button onclick="sendWhatsAppCSV()">📤 Send CSV to WhatsApp</button><br><br>
+
+Type Number: <input id="numberInput" type="text" placeholder="Enter number" />
+
+<table id="dataTable">
+  <tr><th>Device</th><th>Number</th><th>Time</th></tr>
+</table>
 
 <script>
-let deviceCount = 0;
-let savedData = JSON.parse(localStorage.getItem("bibvoiceData")) || {};
+let recognition;
+let listening = false;
+let results = [["Device","Number","Time"]];
 
-function saveData() {
-  localStorage.setItem("bibvoiceData", JSON.stringify(savedData));
+// 24-hour timestamp
+function getCurrentTimestamp() {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2,'0');
+  const minutes = String(now.getMinutes()).padStart(2,'0');
+  const seconds = String(now.getSeconds()).padStart(2,'0');
+  return `${hours}:${minutes}:${seconds}`;
 }
 
-function addDevice(loadId = null) {
-  deviceCount++;
-  const container = document.getElementById("devicesContainer");
+// Add a row to table
+function addRow(device, number) {
+  const time = getCurrentTimestamp();
+  results.push([device, number, time]);
 
-  const section = document.createElement("div");
-  section.className = "device-section";
-  section.id = `device-${deviceCount}`;
+  const table = document.getElementById("dataTable");
+  const row = table.insertRow();
+  row.insertCell(0).textContent = device;
+  row.insertCell(1).textContent = number;
+  row.insertCell(2).textContent = time;
 
-  section.innerHTML = `
-    <div class="status">📱 Device ${deviceCount}</div>
-    <label>BIB: <input type="text" id="bib-${deviceCount}" placeholder="Enter BIB"></label><br>
-    <label>Phone: <input type="tel" id="phone-${deviceCount}" placeholder="Enter Phone"></label><br>
-    <button onclick="addEntry(${deviceCount})">➕ Add Entry</button>
-    <table id="table-${deviceCount}">
-      <thead>
-        <tr>
-          <th>BIB</th>
-          <th>Phone</th>
-          <th>Timestamp</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  `;
-
-  container.appendChild(section);
-
-  // Load existing entries if present
-  if (savedData[`device-${deviceCount}`]) {
-    savedData[`device-${deviceCount}`].forEach(entry => {
-      insertRow(deviceCount, entry.bib, entry.phone, entry.timestamp, false);
-    });
-  }
+  // Auto-scroll to latest row
+  table.scrollTop = table.scrollHeight;
 }
 
-function addEntry(deviceId) {
-  const bibInput = document.getElementById(`bib-${deviceId}`);
-  const phoneInput = document.getElementById(`phone-${deviceId}`);
-  const bib = bibInput.value.trim();
-  const phone = phoneInput.value.trim();
+// Convert spoken words to digits
+function spokenToDigits(spoken) {
+  spoken = spoken.toLowerCase();
+  // Handle double/triple zeros
+  spoken = spoken.replace(/triple zero/g, '000')
+                 .replace(/double zero/g, '00');
+  // Remove spaces and non-digit characters
+  spoken = spoken.replace(/\D/g, '');
+  return spoken;
+}
 
-  if (!bib || !phone) {
-    alert("Please enter both BIB and Phone!");
+// Start continuous speech recognition
+function startListening() {
+  const device = document.getElementById("deviceInput").value.trim();
+  if (!device) return alert("Enter device name first");
+
+  if (!('webkitSpeechRecognition' in window)) {
+    alert("Speech recognition not supported. Use Chrome.");
     return;
   }
 
-  const timestamp = new Date().toLocaleTimeString();
-  insertRow(deviceId, bib, phone, timestamp, true);
+  recognition = new webkitSpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.continuous = true;
+  recognition.interimResults = false;
 
-  // Clear inputs
-  bibInput.value = "";
-  phoneInput.value = "";
+  recognition.onresult = function(event) {
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        let spoken = event.results[i][0].transcript.trim();
+        let digits = spokenToDigits(spoken);
+        if (digits.length > 0) {
+          addRow(device, digits);
+        }
+      }
+    }
+  };
+
+  recognition.onerror = function(e) {
+    console.error("Speech recognition error:", e);
+  };
+
+  recognition.onend = function() {
+    if(listening) recognition.start(); // auto-restart
+  };
+
+  recognition.start();
+  listening = true;
+  alert("Listening started! Speak numbers to save automatically.");
 }
 
-function insertRow(deviceId, bib, phone, timestamp, save = false) {
-  const tableBody = document.getElementById(`table-${deviceId}`).querySelector("tbody");
-
-  const row = document.createElement("tr");
-  row.innerHTML = `
-    <td>${bib}</td>
-    <td>${phone}</td>
-    <td>${timestamp}</td>
-  `;
-  tableBody.appendChild(row);
-
-  // Highlight row briefly
-  row.classList.add("highlight");
-  setTimeout(() => row.classList.remove("highlight"), 1500);
-
-  if (save) {
-    if (!savedData[`device-${deviceId}`]) savedData[`device-${deviceId}`] = [];
-    savedData[`device-${deviceId}`].push({ bib, phone, timestamp });
-    saveData();
+// Stop listening
+function stopListening() {
+  if (recognition && listening) {
+    recognition.stop();
+    listening = false;
   }
 }
 
-// Restore data on page load
-window.onload = () => {
-  const keys = Object.keys(savedData);
-  if (keys.length === 0) {
-    addDevice();
-  } else {
-    keys.forEach(() => addDevice());
+// Auto-save typed numbers
+const numberInput = document.getElementById("numberInput");
+numberInput.addEventListener("keypress", function(e){
+  if (e.key === "Enter") {
+    const device = document.getElementById("deviceInput").value.trim();
+    const value = numberInput.value.trim();
+    if (!device) return alert("Enter device name first");
+    if (/^\d+$/.test(value)) {
+      addRow(device, value);
+      numberInput.value = "";
+    } else {
+      alert("Please enter digits only.");
+    }
   }
-};
+});
+
+// Export CSV
+function downloadCSV() {
+  let csvContent = results.map(r => r.join(",")).join("\n");
+  const blob = new Blob([csvContent], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "numbers.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Send CSV to WhatsApp
+function sendWhatsAppCSV() {
+  const waNumber = document.getElementById("waNumberInput").value.trim();
+  if (!waNumber) return alert("Enter WhatsApp number with country code");
+  if (results.length <= 1) return alert("No numbers logged yet");
+
+  let csvText = results.map(r => r.join(",")).join("\n");
+  csvText = encodeURIComponent(csvText);
+  const url = `https://wa.me/${waNumber}?text=${csvText}`;
+  window.open(url, '_blank');
+}
 </script>
 
 </body>
