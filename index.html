@@ -62,18 +62,19 @@ function addRow(device, number) {
   row.insertCell(1).textContent = number;
   row.insertCell(2).textContent = time;
 
-  // highlight latest row
   for(let i=1; i<table.rows.length; i++) table.rows[i].classList.remove("highlight");
   row.classList.add("highlight");
+  table.scrollTop = 0;
 
-  table.scrollTop = 0; // keep top visible
+  // Send live to Google Sheet
+  sendToGoogleSheet(device, number, time);
 }
 
 // Convert spoken words to digits
 function spokenToDigits(spoken) {
   spoken = spoken.toLowerCase();
   spoken = spoken.replace(/triple zero/g,'000').replace(/double zero/g,'00');
-  spoken = spoken.replace(/\D/g,'');
+  spoken = spoken.replace(/\D/g,''); // remove non-digit characters
   return spoken;
 }
 
@@ -164,6 +165,19 @@ function sendWhatsAppCSV(){
   csvText = encodeURIComponent(csvText);
   const url = `https://wa.me/${waNumber}?text=${csvText}`;
   window.open(url,'_blank');
+}
+
+// Send live to Google Sheet
+function sendToGoogleSheet(device, number, time) {
+  const url = "https://script.google.com/macros/s/AKfycbz-55moZSvtiHNdACU3o400gxQRkJgi0DMDsmLl1nFJZ2Rt2drzlSSpPxtY90BicDv9/exec";
+  fetch(url, {
+    method: "POST",
+    body: JSON.stringify({device, number, time}),
+    headers: {'Content-Type':'application/json'}
+  })
+  .then(res => res.json())
+  .then(data => console.log("Google Sheet response:", data))
+  .catch(err => console.error("Error sending to Google Sheet:", err));
 }
 </script>
 
