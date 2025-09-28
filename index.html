@@ -29,7 +29,8 @@ WhatsApp Number (with country code): <input id="waNumberInput" type="tel" placeh
 <button onclick="startListening()">🎤 Start Listening</button>
 <button onclick="stopListening()">⏹ Stop Listening</button>
 <button onclick="downloadCSV()">⬇️ Export CSV</button>
-<button onclick="sendWhatsAppCSV()">📤 Send CSV to WhatsApp</button><br><br>
+<button onclick="sendWhatsAppCSV()">📤 Send CSV to WhatsApp</button>
+<button onclick="uploadToServer()">⬆️ Upload to Server</button><br><br>
 
 Type Number: <input id="numberInput" type="text" placeholder="Enter number" />
 
@@ -41,7 +42,7 @@ Type Number: <input id="numberInput" type="text" placeholder="Enter number" />
 let recognition;
 let listening = false;
 let results = [["Device","Number","Time"]];
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbz-55moZSvtiHNdACU3o400gxQRkJgi0DMDsmLl1nFJZ2Rt2drzlSSpPxtY90BicDv9/exec";
+const SERVER_URL = "https://script.google.com/macros/s/AKfycbzkXloxcsiXOf4JAybPX5ZfkNmxyklBvxyTJodY1GD7LOcTqr18zLW--4JoiYVCHBX8/exec";
 
 // 24-hour timestamp
 function getCurrentTimestamp() {
@@ -63,12 +64,9 @@ function addRow(device, number) {
   row.insertCell(1).textContent = number;
   row.insertCell(2).textContent = time;
 
-  for(let i=1; i<table.rows.length; i++) table.rows[i].classList.remove("highlight");
+  for(let i=1;i<table.rows.length;i++) table.rows[i].classList.remove("highlight");
   row.classList.add("highlight");
   table.scrollTop = 0;
-
-  // send live to Google Sheet
-  sendToGoogleSheet(device, number, time);
 }
 
 // Convert spoken words to digits
@@ -94,8 +92,8 @@ function startListening() {
   recognition.continuous = true;
   recognition.interimResults = false;
 
-  recognition.onresult = function(event) {
-    for(let i=event.resultIndex; i<event.results.length; i++){
+  recognition.onresult = function(event){
+    for(let i=event.resultIndex;i<event.results.length;i++){
       if(event.results[i].isFinal){
         let spoken = event.results[i][0].transcript.trim();
         let digits = spokenToDigits(spoken);
@@ -148,10 +146,10 @@ function downloadCSV(){
   const now = new Date();
   const dateStr = now.toISOString().slice(0,10);
   const filename = `${device.replace(/\s+/g,'_')}_${dateStr}.csv`;
-  let csvContent = results.map(r => r.join(",")).join("\n");
+  let csvContent = results.map(r=>r.join(",")).join("\n");
   const blob = new Blob([csvContent],{type:"text/csv"});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  const a=document.createElement("a");
   a.href=url; a.download=filename; a.click();
   URL.revokeObjectURL(url);
 }
@@ -162,22 +160,25 @@ function sendWhatsAppCSV(){
   if(!waNumber) return alert("Enter WhatsApp number with country code");
   if(results.length<=1) return alert("No numbers logged yet");
 
-  let csvText = results.map(r => r.join(",")).join("\n");
+  let csvText = results.map(r=>r.join(",")).join("\n");
   csvText = encodeURIComponent(csvText);
   const url = `https://wa.me/${waNumber}?text=${csvText}`;
   window.open(url,'_blank');
 }
 
-// Send live to Google Sheet
-function sendToGoogleSheet(device, number, time) {
-  fetch(GOOGLE_SHEET_URL, {
-    method: "POST",
-    body: JSON.stringify({device, number, time}),
-    headers: {'Content-Type':'application/json'}
-  })
-  .then(res => res.json())
-  .then(data => console.log("Google Sheet response:", data))
-  .catch(err => console.error("Error sending to Google Sheet:", err));
+// Upload to Google Sheet server
+function uploadToServer(){
+  for(let i=1;i<results.length;i++){
+    const [device,number,time] = results[i];
+    fetch(SERVER_URL,{
+      method:"POST",
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({device,number,time})
+    })
+    .then(res=>console.log("Uploaded:", device, number, time))
+    .catch(err=>console.error("Upload failed:", err));
+  }
+  alert("Upload attempt completed. Check your Google Sheet.");
 }
 </script>
 
