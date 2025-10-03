@@ -6,7 +6,7 @@
 <title>SPORTROLIC TECH BIBVOICE</title>
 <style>
 body { font-family: sans-serif; padding: 20px; }
-input[type="text"], input[type="tel"] { font-size: 1.2em; padding: 5px; margin-bottom: 5px; width: 200px; }
+input[type="text"], input[type="tel"] { font-size: 1.2em; padding: 5px; margin-bottom: 5px; width: 250px; }
 button { font-size: 1em; margin: 5px; padding: 5px 10px; }
 table { border-collapse: collapse; margin-top: 15px; width: 100%; max-height: 300px; display: block; overflow-y: auto; }
 table, th, td { border: 1px solid #ccc; }
@@ -21,6 +21,7 @@ th, td { padding: 8px; text-align: left; }
 
 <h2>SPORTROLIC TECH BIBVOICE</h2>
 
+Event Name: <input id="eventInput" type="text" placeholder="Enter event name" /><br>
 Device Name: <input id="deviceInput" type="text" placeholder="Enter device name" /><br>
 WhatsApp Number (with country code): <input id="waNumberInput" type="tel" placeholder="e.g., 919876543210" /><br><br>
 
@@ -30,18 +31,19 @@ WhatsApp Number (with country code): <input id="waNumberInput" type="tel" placeh
 <button onclick="stopListening()">⏹ Stop Listening</button>
 <button onclick="downloadCSV()">⬇️ Export CSV</button>
 <button onclick="sendWhatsAppCSV()">📤 Send CSV to WhatsApp</button>
-<button onclick="uploadToServer()">⬆️ Upload to Server</button><br><br>
+<button onclick="uploadToServer()">⬆️ Upload to Server</button>
+<button onclick="deleteData()">🗑️ Delete Data</button><br><br>
 
 Type Number: <input id="numberInput" type="text" placeholder="Enter number" />
 
 <table id="dataTable">
-  <tr><th>Device</th><th>Number</th><th>Time</th></tr>
+  <tr><th>Event</th><th>Device</th><th>Number</th><th>Time</th></tr>
 </table>
 
 <script>
 let recognition;
 let listening = false;
-let results = [["Device","Number","Time"]];
+let results = [["Event","Device","Number","Time"]];
 const SERVER_URL = "https://script.google.com/macros/s/AKfycbzkXloxcsiXOf4JAybPX5ZfkNmxyklBvxyTJodY1GD7LOcTqr18zLW--4JoiYVCHBX8/exec";
 
 // 24-hour timestamp
@@ -53,20 +55,54 @@ function getCurrentTimestamp() {
   return `${h}:${m}:${s}`;
 }
 
-// Add a row to table (latest on top)
-function addRow(device, number) {
+// Add a row to table (latest on top) + save to localStorage
+function addRow(event, device, number) {
   const time = getCurrentTimestamp();
-  results.push([device, number, time]);
+  results.push([event, device, number, time]);
 
   const table = document.getElementById("dataTable");
   const row = table.insertRow(1); // insert at top
-  row.insertCell(0).textContent = device;
-  row.insertCell(1).textContent = number;
-  row.insertCell(2).textContent = time;
+  row.insertCell(0).textContent = event;
+  row.insertCell(1).textContent = device;
+  row.insertCell(2).textContent = number;
+  row.insertCell(3).textContent = time;
 
   for(let i=1;i<table.rows.length;i++) table.rows[i].classList.remove("highlight");
   row.classList.add("highlight");
-  table.scrollTop = 0;
+
+  saveData();
+}
+
+// Save results into localStorage
+function saveData(){
+  localStorage.setItem("results", JSON.stringify(results));
+}
+
+// Load saved results on page load
+window.onload = function(){
+  const saved = localStorage.getItem("results");
+  if(saved){
+    results = JSON.parse(saved);
+    for(let i=1;i<results.length;i++){
+      const [event, device, number, time] = results[i];
+      const table = document.getElementById("dataTable");
+      const row = table.insertRow(-1);
+      row.insertCell(0).textContent = event;
+      row.insertCell(1).textContent = device;
+      row.insertCell(2).textContent = number;
+      row.insertCell(3).textContent = time;
+    }
+  }
+}
+
+// Delete all stored data
+function deleteData(){
+  if(confirm("Are you sure you want to delete all data?")){
+    results = [["Event","Device","Number","Time"]];
+    localStorage.removeItem("results");
+    const table = document.getElementById("dataTable");
+    table.innerHTML = "<tr><th>Event</th><th>Device</th><th>Number</th><th>Time</th></tr>";
+  }
 }
 
 // Convert spoken words to digits
@@ -79,7 +115,9 @@ function spokenToDigits(spoken) {
 
 // Start continuous speech recognition
 function startListening() {
+  const event = document.getElementById("eventInput").value.trim();
   const device = document.getElementById("deviceInput").value.trim();
+  if(!event) return alert("Enter event name first");
   if(!device) return alert("Enter device name first");
 
   if(!('webkitSpeechRecognition' in window)){
@@ -92,12 +130,12 @@ function startListening() {
   recognition.continuous = true;
   recognition.interimResults = false;
 
-  recognition.onresult = function(event){
-    for(let i=event.resultIndex;i<event.results.length;i++){
-      if(event.results[i].isFinal){
-        let spoken = event.results[i][0].transcript.trim();
+  recognition.onresult = function(eventObj){
+    for(let i=eventObj.resultIndex;i<eventObj.results.length;i++){
+      if(eventObj.results[i].isFinal){
+        let spoken = eventObj.results[i][0].transcript.trim();
         let digits = spokenToDigits(spoken);
-        if(digits.length>0) addRow(device,digits);
+        if(digits.length>0) addRow(event,device,digits);
       }
     }
   }
@@ -130,22 +168,25 @@ function stopListening() {
 const numberInput = document.getElementById("numberInput");
 numberInput.addEventListener("keypress",function(e){
   if(e.key==="Enter"){
+    const event = document.getElementById("eventInput").value.trim();
     const device = document.getElementById("deviceInput").value.trim();
     const value = numberInput.value.trim();
+    if(!event) return alert("Enter event name first");
     if(!device) return alert("Enter device name first");
     if(/^\d+$/.test(value)){
-      addRow(device,value);
+      addRow(event,device,value);
       numberInput.value="";
     } else { alert("Please enter digits only."); }
   }
 });
 
-// Export CSV with device name + date
+// Export CSV with event+device name + date
 function downloadCSV(){
+  const event = document.getElementById("eventInput").value.trim() || "Event";
   const device = document.getElementById("deviceInput").value.trim() || "Device";
   const now = new Date();
   const dateStr = now.toISOString().slice(0,10);
-  const filename = `${device.replace(/\s+/g,'_')}_${dateStr}.csv`;
+  const filename = `${event.replace(/\s+/g,'_')}_${device.replace(/\s+/g,'_')}_${dateStr}.csv`;
   let csvContent = results.map(r=>r.join(",")).join("\n");
   const blob = new Blob([csvContent],{type:"text/csv"});
   const url = URL.createObjectURL(blob);
@@ -169,13 +210,13 @@ function sendWhatsAppCSV(){
 // Upload to Google Sheet server
 function uploadToServer(){
   for(let i=1;i<results.length;i++){
-    const [device,number,time] = results[i];
+    const [event,device,number,time] = results[i];
     fetch(SERVER_URL,{
       method:"POST",
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({device,number,time})
+      body: JSON.stringify({event,device,number,time})
     })
-    .then(res=>console.log("Uploaded:", device, number, time))
+    .then(res=>console.log("Uploaded:", event, device, number, time))
     .catch(err=>console.error("Upload failed:", err));
   }
   alert("Upload attempt completed. Check your Google Sheet.");
