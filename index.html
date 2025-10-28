@@ -1,223 +1,261 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>SPORTROLIC TECH BIBVOICE</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background: #222;
-      color: #fff;
-      text-align: center;
-      padding: 10px;
-      font-size: 22px;
-      font-weight: bold;
-    }
-    .container {
-      max-width: 600px;
-      margin: 20px auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    label {
-      font-weight: bold;
-      margin-top: 10px;
-      display: block;
-    }
-    input {
-      width: 100%;
-      padding: 8px;
-      margin: 5px 0 15px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-    button {
-      padding: 10px 15px;
-      border: none;
-      border-radius: 5px;
-      background: #444;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-      margin: 5px;
-    }
-    button:hover {
-      opacity: 0.9;
-    }
-    #status {
-      font-weight: bold;
-      margin-top: 10px;
-      text-align: center;
-    }
-    #status.listening {
-      color: green;
-    }
-    #status.stopped {
-      color: red;
-    }
-    #results {
-      margin-top: 15px;
-      max-height: 300px;
-      overflow-y: auto;
-      border: 1px solid #ddd;
-      padding: 10px;
-      border-radius: 5px;
-      background: #fafafa;
-    }
-    .entry {
-      padding: 5px;
-      border-bottom: 1px solid #eee;
-    }
-    .entry:first-child {
-      background-color: yellow;
-      font-weight: bold;
-    }
-    .buttons {
-      text-align: center;
-      margin-top: 10px;
+    body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:0 }
+    header { background:#222; color:#fff; text-align:center; padding:10px; font-size:20px }
+    .container { max-width:700px; margin:20px auto; background:#fff; padding:18px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.08) }
+    label { font-weight:600; display:block; margin-top:8px }
+    input { width:100%; padding:8px; margin:6px 0 12px; border-radius:6px; border:1px solid #ccc; font-size:1rem }
+    .buttons { text-align:center; margin-top:8px }
+    button { padding:10px 14px; margin:6px; border-radius:6px; border:none; background:#2d3748; color:#fff; font-weight:700; cursor:pointer }
+    #status { text-align:center; margin-top:12px; font-weight:700 }
+    #status.listening { color:green }
+    #status.stopped { color:red }
+    #results { margin-top:14px; max-height:320px; overflow:auto; border:1px solid #e6e6e6; padding:10px; border-radius:6px; background:#fbfbfb }
+    .entry { padding:6px 8px; border-bottom:1px solid #eee; font-family:monospace }
+    .entry.latest { background: #ffff99; font-weight:700 }
+    @media (max-width:420px){
+      button { width: 48%; margin:6px 1% }
+      input { font-size:1rem }
     }
   </style>
 </head>
 <body>
   <header>SPORTROLIC TECH BIBVOICE</header>
-  <div class="container">
-    <label for="volunteerName">Volunteer Name:</label>
-    <input type="text" id="volunteerName" placeholder="Enter Volunteer Name" />
 
-    <label for="timingLocation">Timing Location Name:</label>
-    <input type="text" id="timingLocation" placeholder="Enter Timing Location Name" />
+  <div class="container">
+    <label for="volunteerName">Volunteer Name</label>
+    <input id="volunteerName" type="text" placeholder="Enter Volunteer Name" />
+
+    <label for="timingLocation">Timing Location Name</label>
+    <input id="timingLocation" type="text" placeholder="Enter Timing Location Name" />
+
+    <label for="manualBIB">Type BIB Number (press Enter)</label>
+    <input id="manualBIB" type="text" placeholder="Enter BIB number and press Enter" />
 
     <div class="buttons">
-      <button id="startBtn">Start Listening</button>
-      <button id="stopBtn">Stop Listening</button>
-      <button id="downloadCSV">Download CSV</button>
-      <button id="deleteData">Delete Data</button>
+      <button id="startBtn">🎤 Start Listening</button>
+      <button id="stopBtn">⏹ Stop Listening</button>
+      <button id="downloadCSV">⬇️ Download CSV</button>
+      <button id="deleteData">🗑️ Delete Data</button>
     </div>
 
-    <div id="status" class="stopped">Stopped</div>
-    <div id="results"></div>
+    <div id="status" class="stopped">⏹ Not Listening</div>
+    <div id="results" aria-live="polite"></div>
   </div>
 
   <script>
-    const startBtn = document.getElementById("startBtn");
-    const stopBtn = document.getElementById("stopBtn");
-    const downloadBtn = document.getElementById("downloadCSV");
-    const deleteBtn = document.getElementById("deleteData");
-    const resultsDiv = document.getElementById("results");
-    const statusDiv = document.getElementById("status");
-    const volunteerInput = document.getElementById("volunteerName");
-    const timingLocationInput = document.getElementById("timingLocation");
+  // ---- Config & state ----
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn  = document.getElementById('stopBtn');
+  const downloadBtn = document.getElementById('downloadCSV');
+  const deleteBtn = document.getElementById('deleteData');
+  const resultsDiv = document.getElementById('results');
+  const statusDiv = document.getElementById('status');
+  const volunteerInput = document.getElementById('volunteerName');
+  const locationInput = document.getElementById('timingLocation');
+  const manualBIB = document.getElementById('manualBIB');
 
-    let recognition;
-    let isListening = false;
-    let entries = JSON.parse(localStorage.getItem("bibEntries")) || [];
+  // entries: array of { number, date, time }
+  let entries = JSON.parse(localStorage.getItem('bibEntries') || 'null') || [];
+  let recognition = null;
+  let listening = false;
 
-    function renderEntries() {
-      resultsDiv.innerHTML = "";
-      entries.slice().reverse().forEach((entry, index) => {
-        const div = document.createElement("div");
-        div.className = "entry";
-        if (index === 0) div.style.backgroundColor = "yellow";
-        div.textContent = `${entry.timestamp} — ${entry.number}`;
-        resultsDiv.appendChild(div);
-      });
-    }
+  // --- Utilities ---
+  function getDateTimeParts() {
+    const now = new Date();
+    const date = now.toLocaleDateString('en-GB'); // DD/MM/YYYY
+    const time = now.toLocaleTimeString('en-GB', { hour12:false }); // 24hr
+    return { date, time };
+  }
 
+  function saveEntries() {
+    localStorage.setItem('bibEntries', JSON.stringify(entries));
+  }
+
+  function renderEntries() {
+    resultsDiv.innerHTML = '';
+    // newest on top
+    const reversed = entries.slice().reverse();
+    reversed.forEach((e, idx) => {
+      const div = document.createElement('div');
+      div.className = 'entry' + (idx === 0 ? ' latest' : '');
+      div.textContent = `${e.date} ${e.time} — ${e.number}`;
+      resultsDiv.appendChild(div);
+    });
+  }
+
+  // initial render
+  renderEntries();
+
+  // --- Add entry (manual or voice) ---
+  function addEntry(number) {
+    if(!number) return;
+    number = String(number).trim().replace(/\D/g,''); // keep digits only
+    if(!number) return;
+    const { date, time } = getDateTimeParts();
+    entries.push({ number, date, time });
+    saveEntries();
     renderEntries();
+  }
 
-    function getTimestamp() {
-      const now = new Date();
-      return now.toLocaleString("en-GB", {
-        hour12: false,
-      });
+  // --- Manual input handler ---
+  manualBIB.addEventListener('keypress', (ev) => {
+    if(ev.key === 'Enter') {
+      const v = manualBIB.value.trim();
+      addEntry(v);
+      manualBIB.value = '';
     }
+  });
 
-    function saveEntries() {
-      localStorage.setItem("bibEntries", JSON.stringify(entries));
+  // --- Speech recognition setup ---
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+
+  function startListening() {
+    if(!SpeechRec) {
+      alert('Speech recognition not supported. Use Chrome on desktop or Android.');
+      return;
     }
+    // prevent multiple instances
+    if(listening) return;
 
-    startBtn.onclick = () => {
-      if (!("webkitSpeechRecognition" in window)) {
-        alert("Speech Recognition not supported in this browser.");
-        return;
-      }
+    recognition = new SpeechRec();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.continuous = true;
 
-      recognition = new webkitSpeechRecognition();
-      recognition.lang = "en-US";
-      recognition.continuous = true;
-      recognition.interimResults = false;
+    recognition.onstart = function() {
+      listening = true;
+      statusDiv.textContent = '🎤 Listening...';
+      statusDiv.className = 'listening';
+      console.log('Recognition started');
+    };
 
-      recognition.onresult = (event) => {
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          if (event.results[i].isFinal) {
-            let transcript = event.results[i][0].transcript.trim();
-            if (/^\d{1,6}$/.test(transcript)) {
-              const timestamp = getTimestamp();
-              const number = transcript;
-              entries.push({ number, timestamp });
-              saveEntries();
-              renderEntries();
-            }
+    recognition.onresult = function(event) {
+      // loop through new results
+      for(let i = event.resultIndex; i < event.results.length; i++) {
+        if(event.results[i].isFinal) {
+          let transcript = event.results[i][0].transcript || '';
+          // keep digits only (this matches previous behavior)
+          const digits = transcript.trim().replace(/\D/g,'');
+          if(digits) {
+            addEntry(digits);
+            console.log('Captured digits:', digits);
+          } else {
+            console.log('No digits in transcript:', transcript);
           }
         }
-      };
+      }
+    };
 
-      recognition.onerror = (e) => console.error(e);
+    recognition.onerror = function(evt) {
+      console.error('Recognition error', evt);
+      // show a small message in console; keep listening state consistent
+    };
+
+    // When recognition stops (user blocked or network), we only auto-restart if user still wanted listening
+    recognition.onend = function() {
+      console.log('Recognition ended');
+      if(listening) {
+        try {
+          recognition.start(); // attempt quick restart
+          console.log('Recognition restarted automatically');
+        } catch(err) {
+          console.warn('Restart failed:', err);
+        }
+      } else {
+        statusDiv.textContent = '⏹ Not Listening';
+        statusDiv.className = 'stopped';
+      }
+    };
+
+    try {
       recognition.start();
-      isListening = true;
-      statusDiv.textContent = "Listening...";
-      statusDiv.className = "listening";
-    };
+    } catch(err) {
+      console.error('Start failed:', err);
+    }
+  }
 
-    stopBtn.onclick = () => {
-      if (isListening && recognition) {
-        recognition.stop();
-        isListening = false;
-        statusDiv.textContent = "Stopped";
-        statusDiv.className = "stopped";
-      }
-    };
+  function stopListening() {
+    if(!recognition) {
+      listening = false;
+      statusDiv.textContent = '⏹ Not Listening';
+      statusDiv.className = 'stopped';
+      return;
+    }
+    listening = false;
+    try {
+      recognition.stop();
+    } catch(e) {
+      console.warn('stop error', e);
+    }
+    // recognition.onend will set status to stopped
+  }
 
-    downloadBtn.onclick = () => {
-      if (entries.length === 0) {
-        alert("No data to download.");
-        return;
-      }
+  // --- Buttons ---
+  startBtn.addEventListener('click', () => {
+    // require volunteer & location names before listening (keeps data consistent)
+    const vol = volunteerInput.value.trim();
+    const loc = locationInput.value.trim();
+    if(!vol) { alert('Enter Volunteer Name first'); volunteerInput.focus(); return; }
+    if(!loc) { alert('Enter Timing Location Name first'); locationInput.focus(); return; }
+    startListening();
+  });
 
-      const volunteerName = volunteerInput.value.trim() || "Unknown_Volunteer";
-      const timingLocation = timingLocationInput.value.trim() || "Unknown_Location";
-      const date = new Date().toISOString().split("T")[0];
-      const filename = `${timingLocation}_${date}.csv`;
+  stopBtn.addEventListener('click', () => {
+    stopListening();
+  });
 
-      let csvContent = "data:text/csv;charset=utf-8,";
-      csvContent += "Volunteer Name,Timing Location,Timestamp,BIB Number\n";
-      entries.forEach((entry) => {
-        csvContent += `${volunteerName},${timingLocation},${entry.timestamp},${entry.number}\n`;
-      });
+  downloadBtn.addEventListener('click', () => {
+    if(entries.length === 0) { alert('No data to download.'); return; }
+    const vol = volunteerInput.value.trim() || 'Unknown_Volunteer';
+    const loc = locationInput.value.trim() || 'Unknown_Location';
+    const isoDate = new Date().toISOString().split('T')[0];
+    const filename = `${loc}_${isoDate}.csv`;
 
-      const link = document.createElement("a");
-      link.href = encodeURI(csvContent);
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    };
+    // CSV header: Volunteer Name, Timing Location, Date, Time, BIB Number
+    let csv = 'Volunteer Name,Timing Location,Date,Time,BIB Number\n';
+    entries.forEach(e => {
+      // escape commas/spaces as needed (simple)
+      const line = `${escapeCsv(vol)},${escapeCsv(loc)},${escapeCsv(e.date)},${escapeCsv(e.time)},${escapeCsv(e.number)}`;
+      csv += line + '\n';
+    });
 
-    deleteBtn.onclick = () => {
-      if (confirm("Are you sure you want to delete all data?")) {
-        entries = [];
-        saveEntries();
-        renderEntries();
-      }
-    };
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    a.remove();
+  });
+
+  deleteBtn.addEventListener('click', () => {
+    if(confirm('Are you sure you want to delete all data?')) {
+      entries = [];
+      saveEntries();
+      renderEntries();
+    }
+  });
+
+  // small CSV escape helper
+  function escapeCsv(field) {
+    if (field == null) return '';
+    const s = String(field);
+    if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  }
+
+  // expose simple debug helper: show stored count in console
+  console.log('Loaded entries:', entries.length);
   </script>
 </body>
 </html>
