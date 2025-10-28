@@ -1,277 +1,265 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SPORTROLIC TECH BIBVOICE</title>
-  <style>
-    :root{
-      --bg: #f6f8fa;
-      --card: #ffffff;
-      --accent: #2d3748;
-      --muted: #666;
-      --highlight: #ffff99;
-    }
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; background:var(--bg); margin:0; padding:20px;}
-    header{background:var(--accent); color:#fff; padding:12px 16px; border-radius:8px; text-align:center; font-weight:700; font-size:18px;}
-    .card{max-width:900px; margin:18px auto; background:var(--card); padding:16px; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,0.06);}
-    label{display:block; font-weight:600; margin-top:8px}
-    input[type="text"]{width:100%; padding:10px; margin-top:6px; border-radius:6px; border:1px solid #d0d7de; font-size:1rem}
-    .row{display:flex; gap:12px; flex-wrap:wrap}
-    .col{flex:1 1 200px}
-    .buttons{margin-top:12px; display:flex; gap:8px; flex-wrap:wrap}
-    button{background:var(--accent); color:#fff; border:none; padding:10px 14px; border-radius:6px; cursor:pointer; font-weight:700}
-    button.secondary{background:#6b7280}
-    #status{margin-top:10px; text-align:center; font-weight:700}
-    #status.listening{color:green}
-    #status.stopped{color:red}
-    .table-wrap{margin-top:14px; max-height:420px; overflow:auto; border:1px solid #e6e9ef; border-radius:6px; background:#fff}
-    table{width:100%; border-collapse:collapse; min-width:700px}
-    th, td{padding:8px 10px; border-bottom:1px solid #f0f0f0; text-align:left; font-family:monospace}
-    thead th{position:sticky; top:0; background:#111827; color:#fff; z-index:2}
-    tr.latest{background:var(--highlight); font-weight:700}
-    @media (max-width:640px){
-      .row{flex-direction:column}
-      input[type="text"]{font-size:0.95rem}
-      button{flex:1}
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SPORTROLIC TECH BIBVOICE</title>
+<style>
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #f6f8fa;
+  margin: 0;
+  padding: 20px;
+}
+header {
+  background: #2d3748;
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 18px;
+}
+.card {
+  max-width: 900px;
+  margin: 18px auto;
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+}
+label {
+  display: block;
+  font-weight: 600;
+  margin-top: 8px;
+}
+input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  margin-top: 6px;
+  border-radius: 6px;
+  border: 1px solid #d0d7de;
+  font-size: 1rem;
+}
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.col { flex: 1 1 200px; }
+.buttons { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+button {
+  background: #2d3748;
+  color: #fff;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+}
+button.secondary { background: #6b7280; }
+#status { margin-top: 10px; text-align: center; font-weight: 700; }
+#status.listening { color: green; }
+#status.stopped { color: red; }
+.table-wrap {
+  margin-top: 14px;
+  max-height: 420px;
+  overflow: auto;
+  border: 1px solid #e6e9ef;
+  border-radius: 6px;
+  background: #fff;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 400px;
+}
+th, td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  text-align: left;
+  font-family: monospace;
+}
+thead th {
+  position: sticky;
+  top: 0;
+  background: #111827;
+  color: #fff;
+  z-index: 2;
+}
+tr.latest { background: #ffff99; font-weight: 700; }
+@media (max-width: 640px) {
+  .row { flex-direction: column; }
+  input[type="text"] { font-size: 0.95rem; }
+  button { flex: 1; }
+}
+</style>
 </head>
 <body>
-  <header>SPORTROLIC TECH BIBVOICE</header>
+<header>SPORTROLIC TECH BIBVOICE</header>
 
-  <div class="card">
-    <label for="bibInput">BIB Number (type or use voice)</label>
-    <input id="bibInput" type="text" inputmode="numeric" placeholder="Enter BIB number (or press Start Listening and speak)" />
+<div class="card">
+  <label for="bibInput">BIB Number (type or speak)</label>
+  <input id="bibInput" type="text" inputmode="numeric" placeholder="Enter BIB number" />
 
-    <div class="row">
-      <div class="col">
-        <label for="volunteerInput">Volunteer Name</label>
-        <input id="volunteerInput" type="text" placeholder="Enter Volunteer Name" />
-      </div>
-      <div class="col">
-        <label for="locationInput">Timing Location Name</label>
-        <input id="locationInput" type="text" placeholder="Enter Timing Location Name" />
-      </div>
+  <div class="row">
+    <div class="col">
+      <label for="volunteerInput">Volunteer Name</label>
+      <input id="volunteerInput" type="text" placeholder="Enter Volunteer Name" />
     </div>
-
-    <div class="buttons">
-      <button id="startBtn">🎤 Start Listening</button>
-      <button id="stopBtn" class="secondary">⏹ Stop Listening</button>
-      <button id="addBtn" class="secondary">➕ Add Entry</button>
-      <button id="downloadBtn">⬇️ Download CSV</button>
-      <button id="deleteBtn" class="secondary">🗑️ Delete Data</button>
-    </div>
-
-    <div id="status" class="stopped">⏹ Not Listening</div>
-
-    <div class="table-wrap" id="tableWrap" tabindex="0" aria-live="polite">
-      <table id="dataTable" role="table">
-        <thead>
-          <tr>
-            <th>BIB Number</th>
-            <th>Volunteer Name</th>
-            <th>Timing Location</th>
-            <th>Date</th>
-            <th>Time</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+    <div class="col">
+      <label for="locationInput">Timing Location Name</label>
+      <input id="locationInput" type="text" placeholder="Enter Timing Location Name" />
     </div>
   </div>
 
-<script>
-/* STATE */
-const bibInput = document.getElementById('bibInput');
-const volunteerInput = document.getElementById('volunteerInput');
-const locationInput = document.getElementById('locationInput');
-const startBtn = document.getElementById('startBtn');
-const stopBtn = document.getElementById('stopBtn');
-const addBtn = document.getElementById('addBtn');
-const downloadBtn = document.getElementById('downloadBtn');
-const deleteBtn = document.getElementById('deleteBtn');
-const statusDiv = document.getElementById('status');
-const dataTableBody = document.querySelector('#dataTable tbody');
-const tableWrap = document.getElementById('tableWrap');
+  <div class="buttons">
+    <button id="startBtn">🎤 Start Listening</button>
+    <button id="stopBtn" class="secondary">⏹ Stop Listening</button>
+    <button id="addBtn" class="secondary">➕ Add Entry</button>
+    <button id="downloadBtn">⬇️ Download CSV</button>
+    <button id="deleteBtn" class="secondary">🗑️ Delete Data</button>
+  </div>
 
-let entries = JSON.parse(localStorage.getItem('raceData')||'null') || []; // newest last in storage
+  <div id="status" class="stopped">⏹ Not Listening</div>
+
+  <div class="table-wrap" id="tableWrap">
+    <table id="dataTable">
+      <thead>
+        <tr><th>BIB Number</th><th>Time</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const bibInput = document.getElementById("bibInput");
+const volunteerInput = document.getElementById("volunteerInput");
+const locationInput = document.getElementById("locationInput");
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+const addBtn = document.getElementById("addBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+const deleteBtn = document.getElementById("deleteBtn");
+const statusDiv = document.getElementById("status");
+const dataTableBody = document.querySelector("#dataTable tbody");
+const tableWrap = document.getElementById("tableWrap");
+
+let entries = JSON.parse(localStorage.getItem("raceData") || "[]");
 let recognition = null;
 let listening = false;
 
-/* UTILITIES */
-function nowParts(){
+function nowParts() {
   const n = new Date();
-  const date = n.toLocaleDateString('en-GB'); // dd/mm/yyyy
-  const time = n.toLocaleTimeString('en-GB', {hour12:false});
-  return {date, time};
-}
-function save(){
-  localStorage.setItem('raceData', JSON.stringify(entries));
-}
-function escapeCsv(s){
-  if(s == null) return '';
-  const str = String(s);
-  if(/[",\n]/.test(str)) return `"${str.replace(/"/g,'""')}"`;
-  return str;
+  const date = n.toLocaleDateString("en-GB");
+  const time = n.toLocaleTimeString("en-GB", { hour12: false });
+  return { date, time };
 }
 
-/* RENDER: newest on top, scroll to top */
-function render(){
-  dataTableBody.innerHTML = '';
-  // iterate reversed so newest appears first
-  for(let i = entries.length - 1; i >= 0; i--){
+function save() {
+  localStorage.setItem("raceData", JSON.stringify(entries));
+}
+
+function render() {
+  dataTableBody.innerHTML = "";
+  for (let i = entries.length - 1; i >= 0; i--) {
     const e = entries[i];
-    const tr = document.createElement('tr');
-    if(i === entries.length - 1) tr.classList.add('latest'); // newest entry (last stored) becomes first row visually
-    tr.innerHTML = `<td>${e.bib}</td><td>${e.volunteer}</td><td>${e.location}</td><td>${e.date}</td><td>${e.time}</td>`;
+    const tr = document.createElement("tr");
+    if (i === entries.length - 1) tr.classList.add("latest");
+    tr.innerHTML = `<td>${e.bib}</td><td>${e.time}</td>`;
     dataTableBody.appendChild(tr);
   }
-  // scroll to top of the container so newest is visible
   tableWrap.scrollTop = 0;
 }
 
-/* ADD ENTRY: validate fields */
-function addEntry(bibValue){
-  const bib = String(bibValue||'').trim().replace(/\D/g,'');
-  if(!bib){
-    alert('Please enter a valid BIB number (digits only).');
-    bibInput.focus();
+function addEntry(bibValue) {
+  const bib = String(bibValue || "").trim().replace(/\D/g, "");
+  if (!bib) {
+    alert("Enter valid BIB number");
     return;
   }
-  const volunteer = volunteerInput.value.trim() || 'Unknown_Volunteer';
-  const location = locationInput.value.trim() || 'Unknown_Location';
-  const {date, time} = nowParts();
-  // push to entries (new entries appended to end; render reverses)
+  const volunteer = volunteerInput.value.trim() || "Unknown_Volunteer";
+  const location = locationInput.value.trim() || "Unknown_Location";
+  const { date, time } = nowParts();
   entries.push({ bib, volunteer, location, date, time });
   save();
   render();
 }
 
-/* MANUAL ADD via button or Enter key */
-addBtn.addEventListener('click', () => addEntry(bibInput.value));
-bibInput.addEventListener('keypress', (e) => {
-  if(e.key === 'Enter') {
-    e.preventDefault();
+addBtn.onclick = () => addEntry(bibInput.value);
+bibInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
     addEntry(bibInput.value);
-    bibInput.value = '';
-    bibInput.focus();
+    bibInput.value = "";
   }
 });
 
-/* DOWNLOAD CSV */
-downloadBtn.addEventListener('click', () => {
-  if(entries.length === 0){ alert('No data to download.'); return; }
-  const volunteer = volunteerInput.value.trim() || 'Unknown_Volunteer';
-  const location = locationInput.value.trim() || 'Unknown_Location';
-  const isoDate = new Date().toISOString().split('T')[0];
-  const filename = `${location.replace(/\s+/g,'_')}_${isoDate}.csv`;
-  let csv = 'Volunteer Name,Timing Location,Date,Time,BIB Number\n';
-  // write top->bottom as newest first to match display
-  for(let i = entries.length - 1; i >= 0; i--){
+downloadBtn.onclick = () => {
+  if (!entries.length) return alert("No data");
+  const volunteer = volunteerInput.value.trim() || "Volunteer";
+  const location = locationInput.value.trim() || "Location";
+  const filename = `${location.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0,10)}.csv`;
+  let csv = "Volunteer Name,Timing Location,Date,Time,BIB Number\n";
+  for (let i = entries.length - 1; i >= 0; i--) {
     const e = entries[i];
-    csv += `${escapeCsv(e.volunteer)},${escapeCsv(e.location)},${escapeCsv(e.date)},${escapeCsv(e.time)},${escapeCsv(e.bib)}\n`;
+    csv += `${e.volunteer},${e.location},${e.date},${e.time},${e.bib}\n`;
   }
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename; document.body.appendChild(a); a.click();
-  URL.revokeObjectURL(url); a.remove();
-});
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
 
-/* DELETE DATA */
-deleteBtn.addEventListener('click', () => {
-  if(confirm('Delete all stored entries? This cannot be undone.')){
+deleteBtn.onclick = () => {
+  if (confirm("Delete all data?")) {
     entries = [];
     save();
     render();
   }
-});
+};
 
-/* SPEECH: single robust instance with auto-add */
-const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-
-function startListening(){
-  if(!SpeechRec){
-    alert('Speech Recognition not supported. Use Chrome (desktop or Android).');
-    return;
-  }
-  if(listening) return; // avoid duplicates
-
-  // require volunteer & location for consistency
-  if(!volunteerInput.value.trim()){ alert('Enter Volunteer Name first'); volunteerInput.focus(); return; }
-  if(!locationInput.value.trim()){ alert('Enter Timing Location Name first'); locationInput.focus(); return; }
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+function startListening() {
+  if (!SpeechRec) return alert("Speech recognition not supported in this browser");
+  if (listening) return;
+  if (!volunteerInput.value.trim()) return alert("Enter Volunteer Name");
+  if (!locationInput.value.trim()) return alert("Enter Timing Location Name");
 
   recognition = new SpeechRec();
-  recognition.lang = 'en-US';
+  recognition.lang = "en-US";
   recognition.continuous = true;
   recognition.interimResults = false;
 
-  recognition.onstart = () => {
-    listening = true;
-    statusDiv.textContent = '🎤 Listening...';
-    statusDiv.className = 'listening';
-  };
-
   recognition.onresult = (evt) => {
-    for(let i = evt.resultIndex; i < evt.results.length; i++){
-      if(evt.results[i].isFinal){
-        let transcript = (evt.results[i][0].transcript || '').trim();
-        // convert spoken to digits: keep only digits
-        let digits = transcript.replace(/\D/g,'');
-        // also handle "double zero" / "triple zero" spoken as words
-        // quick pre-processing for common phrases
-        digits = digits || transcript.toLowerCase().replace(/triple zero/g,'000').replace(/double zero/g,'00').replace(/\D/g,'');
-        if(digits){
-          // set in input so user can see it and then auto-add
-          bibInput.value = digits;
-          addEntry(digits);
-          // clear input for next
-          bibInput.value = '';
+    for (let i = evt.resultIndex; i < evt.results.length; i++) {
+      if (evt.results[i].isFinal) {
+        let t = evt.results[i][0].transcript.trim().toLowerCase();
+        t = t.replace(/triple zero/g, "000").replace(/double zero/g, "00").replace(/\D/g, "");
+        if (t) {
+          bibInput.value = t;
+          addEntry(t);
+          bibInput.value = "";
         }
       }
     }
   };
-
-  recognition.onerror = (err) => {
-    console.error('Speech error', err);
-    // do not stop listening here; onend handles restart
-  };
-
-  recognition.onend = () => {
-    // if user didn't click stop, restart quietly (helps with short connection drops)
-    if(listening){
-      try { recognition.start(); } catch(e){ console.warn('restart failed', e); }
-    } else {
-      statusDiv.textContent = '⏹ Not Listening';
-      statusDiv.className = 'stopped';
-    }
-  };
-
-  try {
-    recognition.start();
-  } catch(err){
-    console.error('start failed', err);
-  }
+  recognition.onend = () => { if (listening) recognition.start(); };
+  recognition.onerror = (e) => console.error(e);
+  recognition.start();
+  listening = true;
+  statusDiv.textContent = "🎤 Listening...";
+  statusDiv.className = "listening";
 }
 
-function stopListening(){
-  if(!recognition) { listening = false; statusDiv.textContent = '⏹ Not Listening'; statusDiv.className = 'stopped'; return; }
+function stopListening() {
+  if (recognition) recognition.stop();
   listening = false;
-  try { recognition.stop(); } catch(e){ console.warn('stop failed', e); }
-  // onend will set status
+  statusDiv.textContent = "⏹ Not Listening";
+  statusDiv.className = "stopped";
 }
 
-/* Buttons for speech control */
-startBtn.addEventListener('click', startListening);
-stopBtn.addEventListener('click', stopListening);
-
-/* initialize render & focus */
+startBtn.onclick = startListening;
+stopBtn.onclick = stopListening;
 render();
-bibInput.focus();
-
-/* helpful: expose debug object on window for quick inspection in console */
-window._raceApp = { entries, addEntry, startListening, stopListening, render };
 </script>
 </body>
 </html>
