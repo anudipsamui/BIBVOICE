@@ -2,264 +2,194 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>SPORTROLIC TECH BIBVOICE</title>
 <style>
-body {
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  background: #f6f8fa;
-  margin: 0;
-  padding: 20px;
-}
-header {
-  background: #2d3748;
-  color: #fff;
-  padding: 12px 16px;
-  border-radius: 8px;
-  text-align: center;
-  font-weight: 700;
-  font-size: 18px;
-}
-.card {
-  max-width: 900px;
-  margin: 18px auto;
-  background: #fff;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
-}
-label {
-  display: block;
-  font-weight: 600;
-  margin-top: 8px;
-}
-input[type="text"] {
-  width: 100%;
-  padding: 10px;
-  margin-top: 6px;
-  border-radius: 6px;
-  border: 1px solid #d0d7de;
-  font-size: 1rem;
-}
-.row { display: flex; gap: 12px; flex-wrap: wrap; }
-.col { flex: 1 1 200px; }
-.buttons { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
-button {
-  background: #2d3748;
-  color: #fff;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 700;
-}
-button.secondary { background: #6b7280; }
-#status { margin-top: 10px; text-align: center; font-weight: 700; }
-#status.listening { color: green; }
-#status.stopped { color: red; }
-.table-wrap {
-  margin-top: 14px;
-  max-height: 420px;
-  overflow: auto;
-  border: 1px solid #e6e9ef;
-  border-radius: 6px;
-  background: #fff;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 400px;
-}
-th, td {
-  padding: 8px 10px;
-  border-bottom: 1px solid #f0f0f0;
-  text-align: left;
-  font-family: monospace;
-}
-thead th {
-  position: sticky;
-  top: 0;
-  background: #111827;
-  color: #fff;
-  z-index: 2;
-}
-tr.latest { background: #ffff99; font-weight: 700; }
-@media (max-width: 640px) {
-  .row { flex-direction: column; }
-  input[type="text"] { font-size: 0.95rem; }
-  button { flex: 1; }
+body { font-family: sans-serif; padding: 10px; }
+input[type="text"] { font-size: 1.1em; padding: 6px; margin: 3px; width: 200px; }
+button { font-size: 1em; margin: 4px; padding: 5px 10px; }
+table { border-collapse: collapse; margin-top: 10px; width: 100%; display: block; max-height: 300px; overflow-y: auto; }
+th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+.highlight { background-color: #ffff99; }
+#status { font-weight: bold; margin: 10px 0; }
+.listening { color: green; }
+.stopped { color: red; }
+@media (max-width: 600px){
+  input[type="text"] { width: 100%; }
+  button { width: 48%; margin: 4px 1%; }
 }
 </style>
 </head>
 <body>
-<header>SPORTROLIC TECH BIBVOICE</header>
 
-<div class="card">
-  <label for="bibInput">BIB Number (type or speak)</label>
-  <input id="bibInput" type="text" inputmode="numeric" placeholder="Enter BIB number" />
+<h2>SPORTROLIC TECH BIBVOICE</h2>
 
-  <div class="row">
-    <div class="col">
-      <label for="volunteerInput">Volunteer Name</label>
-      <input id="volunteerInput" type="text" placeholder="Enter Volunteer Name" />
-    </div>
-    <div class="col">
-      <label for="locationInput">Timing Location Name</label>
-      <input id="locationInput" type="text" placeholder="Enter Timing Location Name" />
-    </div>
+<div style="display:flex; flex-wrap:wrap; gap:5px;">
+  <div>
+    Volunteer Name:<br>
+    <input id="volunteerInput" type="text" placeholder="Enter volunteer name" />
   </div>
-
-  <div class="buttons">
-    <button id="startBtn">🎤 Start Listening</button>
-    <button id="stopBtn" class="secondary">⏹ Stop Listening</button>
-    <button id="addBtn" class="secondary">➕ Add Entry</button>
-    <button id="downloadBtn">⬇️ Download CSV</button>
-    <button id="deleteBtn" class="secondary">🗑️ Delete Data</button>
+  <div>
+    Timing Location Name:<br>
+    <input id="deviceInput" type="text" placeholder="Enter timing location" />
   </div>
+</div><br>
 
-  <div id="status" class="stopped">⏹ Not Listening</div>
+<div id="status" class="stopped">⏹ Not Listening</div>
 
-  <div class="table-wrap" id="tableWrap">
-    <table id="dataTable">
-      <thead>
-        <tr><th>BIB Number</th><th>Time</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</div>
+<button onclick="startListening()">🎤 Start Listening</button>
+<button onclick="stopListening()">⏹ Stop Listening</button>
+<button onclick="downloadCSV()">⬇️ Export CSV</button>
+<button onclick="deleteData()">🗑 Delete Data</button><br><br>
+
+Type Number: <input id="numberInput" type="text" placeholder="Enter BIB number" />
+
+<table id="dataTable">
+  <tr><th>BIB Number</th><th>Time</th></tr>
+</table>
 
 <script>
-const bibInput = document.getElementById("bibInput");
-const volunteerInput = document.getElementById("volunteerInput");
-const locationInput = document.getElementById("locationInput");
-const startBtn = document.getElementById("startBtn");
-const stopBtn = document.getElementById("stopBtn");
-const addBtn = document.getElementById("addBtn");
-const downloadBtn = document.getElementById("downloadBtn");
-const deleteBtn = document.getElementById("deleteBtn");
-const statusDiv = document.getElementById("status");
-const dataTableBody = document.querySelector("#dataTable tbody");
-const tableWrap = document.getElementById("tableWrap");
-
-let entries = JSON.parse(localStorage.getItem("raceData") || "[]");
-let recognition = null;
+let recognition;
 let listening = false;
+let results = [["Volunteer","Location","BIB","Date","Time"]];
 
-function nowParts() {
-  const n = new Date();
-  const date = n.toLocaleDateString("en-GB");
-  const time = n.toLocaleTimeString("en-GB", { hour12: false });
-  return { date, time };
+// Timestamp functions
+function getCurrentTimestamp() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  return `${h}:${m}:${s}`;
+}
+function getCurrentDate() {
+  const now = new Date();
+  return now.toISOString().slice(0,10);
 }
 
-function save() {
-  localStorage.setItem("raceData", JSON.stringify(entries));
+// Add new entry (shows only BIB & Time)
+function addRow(volunteer, device, number) {
+  const time = getCurrentTimestamp();
+  const date = getCurrentDate();
+  results.push([volunteer, device, number, date, time]);
+
+  const table = document.getElementById("dataTable");
+  const row = table.insertRow(1);
+  row.insertCell(0).textContent = number;
+  row.insertCell(1).textContent = time;
+
+  for(let i=1;i<table.rows.length;i++) table.rows[i].classList.remove("highlight");
+  row.classList.add("highlight");
+  table.scrollTop = 0;
+
+  localStorage.setItem("bibvoiceData", JSON.stringify(results));
 }
 
-function render() {
-  dataTableBody.innerHTML = "";
-  for (let i = entries.length - 1; i >= 0; i--) {
-    const e = entries[i];
-    const tr = document.createElement("tr");
-    if (i === entries.length - 1) tr.classList.add("latest");
-    tr.innerHTML = `<td>${e.bib}</td><td>${e.time}</td>`;
-    dataTableBody.appendChild(tr);
-  }
-  tableWrap.scrollTop = 0;
+// Convert spoken to digits
+function spokenToDigits(spoken){
+  spoken = spoken.toLowerCase().replace(/triple zero/g,'000').replace(/double zero/g,'00');
+  return spoken.replace(/\D/g,'');
 }
 
-function addEntry(bibValue) {
-  const bib = String(bibValue || "").trim().replace(/\D/g, "");
-  if (!bib) {
-    alert("Enter valid BIB number");
+// Start listening
+function startListening(){
+  const volunteer = document.getElementById("volunteerInput").value.trim();
+  const device = document.getElementById("deviceInput").value.trim();
+  if(!volunteer || !device) return alert("Enter volunteer and timing location first");
+
+  if(!('webkitSpeechRecognition' in window)){
+    alert("Speech recognition not supported. Use Chrome.");
     return;
   }
-  const volunteer = volunteerInput.value.trim() || "Unknown_Volunteer";
-  const location = locationInput.value.trim() || "Unknown_Location";
-  const { date, time } = nowParts();
-  entries.push({ bib, volunteer, location, date, time });
-  save();
-  render();
-}
 
-addBtn.onclick = () => addEntry(bibInput.value);
-bibInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") {
-    addEntry(bibInput.value);
-    bibInput.value = "";
-  }
-});
-
-downloadBtn.onclick = () => {
-  if (!entries.length) return alert("No data");
-  const volunteer = volunteerInput.value.trim() || "Volunteer";
-  const location = locationInput.value.trim() || "Location";
-  const filename = `${location.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0,10)}.csv`;
-  let csv = "Volunteer Name,Timing Location,Date,Time,BIB Number\n";
-  for (let i = entries.length - 1; i >= 0; i--) {
-    const e = entries[i];
-    csv += `${e.volunteer},${e.location},${e.date},${e.time},${e.bib}\n`;
-  }
-  const blob = new Blob([csv], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
-};
-
-deleteBtn.onclick = () => {
-  if (confirm("Delete all data?")) {
-    entries = [];
-    save();
-    render();
-  }
-};
-
-const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-function startListening() {
-  if (!SpeechRec) return alert("Speech recognition not supported in this browser");
-  if (listening) return;
-  if (!volunteerInput.value.trim()) return alert("Enter Volunteer Name");
-  if (!locationInput.value.trim()) return alert("Enter Timing Location Name");
-
-  recognition = new SpeechRec();
+  recognition = new webkitSpeechRecognition();
   recognition.lang = "en-US";
   recognition.continuous = true;
   recognition.interimResults = false;
 
-  recognition.onresult = (evt) => {
-    for (let i = evt.resultIndex; i < evt.results.length; i++) {
-      if (evt.results[i].isFinal) {
-        let t = evt.results[i][0].transcript.trim().toLowerCase();
-        t = t.replace(/triple zero/g, "000").replace(/double zero/g, "00").replace(/\D/g, "");
-        if (t) {
-          bibInput.value = t;
-          addEntry(t);
-          bibInput.value = "";
-        }
+  recognition.onresult = function(event){
+    for(let i=event.resultIndex;i<event.results.length;i++){
+      if(event.results[i].isFinal){
+        const spoken = event.results[i][0].transcript.trim();
+        const digits = spokenToDigits(spoken);
+        if(digits.length>0) addRow(volunteer, device, digits);
       }
     }
-  };
-  recognition.onend = () => { if (listening) recognition.start(); };
-  recognition.onerror = (e) => console.error(e);
+  }
+
+  recognition.onerror = e => console.error("Speech recognition error:", e);
+  recognition.onend = ()=>{ if(listening) recognition.start(); };
+
   recognition.start();
   listening = true;
+  const statusDiv = document.getElementById("status");
   statusDiv.textContent = "🎤 Listening...";
-  statusDiv.className = "listening";
+  statusDiv.classList.replace("stopped","listening");
 }
 
-function stopListening() {
-  if (recognition) recognition.stop();
-  listening = false;
-  statusDiv.textContent = "⏹ Not Listening";
-  statusDiv.className = "stopped";
+// Stop listening
+function stopListening(){
+  if(recognition && listening){
+    recognition.stop();
+    listening = false;
+    const statusDiv = document.getElementById("status");
+    statusDiv.textContent = "⏹ Not Listening";
+    statusDiv.classList.replace("listening","stopped");
+  }
 }
 
-startBtn.onclick = startListening;
-stopBtn.onclick = stopListening;
-render();
+// Manual entry
+const numberInput = document.getElementById("numberInput");
+numberInput.addEventListener("keypress",function(e){
+  if(e.key==="Enter"){
+    const volunteer = document.getElementById("volunteerInput").value.trim();
+    const device = document.getElementById("deviceInput").value.trim();
+    const value = numberInput.value.trim();
+    if(!volunteer || !device) return alert("Enter volunteer and timing location first");
+    if(/^\d+$/.test(value)){
+      addRow(volunteer, device, value);
+      numberInput.value="";
+    } else { alert("Please enter digits only."); }
+  }
+});
+
+// Export CSV
+function downloadCSV(){
+  const device = document.getElementById("deviceInput").value.trim() || "Device";
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0,10);
+  const filename = `${device.replace(/\s+/g,'_')}_${dateStr}.csv`;
+  const csvContent = results.map(r=>r.join(",")).join("\n");
+  const blob = new Blob([csvContent],{type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Delete stored data
+function deleteData(){
+  if(confirm("Are you sure you want to delete all saved data?")){
+    results = [["Volunteer","Location","BIB","Date","Time"]];
+    localStorage.removeItem("bibvoiceData");
+    const table = document.getElementById("dataTable");
+    table.innerHTML = "<tr><th>BIB Number</th><th>Time</th></tr>";
+  }
+}
+
+// Restore saved data
+window.onload = function(){
+  const saved = localStorage.getItem("bibvoiceData");
+  if(saved){
+    results = JSON.parse(saved);
+    const table = document.getElementById("dataTable");
+    for(let i=results.length-1;i>=1;i--){
+      const row = table.insertRow(1);
+      row.insertCell(0).textContent = results[i][2];
+      row.insertCell(1).textContent = results[i][4];
+    }
+  }
+}
 </script>
+
 </body>
 </html>
