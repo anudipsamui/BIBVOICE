@@ -51,9 +51,9 @@ Type Number: <input id="numberInput" type="text" placeholder="Enter BIB number" 
 <script>
 let recognition;
 let listening = false;
-let results = [["Volunteer","Location","BIB","Date","Time"]];
+let results = [["Volunteer","Location","Date","BIB","Time"]];
 
-// Timestamp functions
+// Timestamp helpers
 function getCurrentTimestamp() {
   const now = new Date();
   const h = String(now.getHours()).padStart(2,'0');
@@ -66,11 +66,11 @@ function getCurrentDate() {
   return now.toISOString().slice(0,10);
 }
 
-// Add new entry (shows only BIB & Time)
+// Add entry
 function addRow(volunteer, device, number) {
   const time = getCurrentTimestamp();
   const date = getCurrentDate();
-  results.push([volunteer, device, number, date, time]);
+  results.push([volunteer, device, date, number, time]);
 
   const table = document.getElementById("dataTable");
   const row = table.insertRow(1);
@@ -84,7 +84,7 @@ function addRow(volunteer, device, number) {
   localStorage.setItem("bibvoiceData", JSON.stringify(results));
 }
 
-// Convert spoken to digits
+// Convert speech to digits
 function spokenToDigits(spoken){
   spoken = spoken.toLowerCase().replace(/triple zero/g,'000').replace(/double zero/g,'00');
   return spoken.replace(/\D/g,'');
@@ -152,12 +152,13 @@ numberInput.addEventListener("keypress",function(e){
   }
 });
 
-// Export CSV
+// Export CSV (filename includes volunteer + device)
 function downloadCSV(){
+  const volunteer = document.getElementById("volunteerInput").value.trim() || "Volunteer";
   const device = document.getElementById("deviceInput").value.trim() || "Device";
   const now = new Date();
   const dateStr = now.toISOString().slice(0,10);
-  const filename = `${device.replace(/\s+/g,'_')}_${dateStr}.csv`;
+  const filename = `${volunteer.replace(/\s+/g,'_')}_${device.replace(/\s+/g,'_')}_${dateStr}.csv`;
   const csvContent = results.map(r=>r.join(",")).join("\n");
   const blob = new Blob([csvContent],{type:"text/csv"});
   const url = URL.createObjectURL(blob);
@@ -166,10 +167,10 @@ function downloadCSV(){
   URL.revokeObjectURL(url);
 }
 
-// Delete stored data
+// Delete data
 function deleteData(){
   if(confirm("Are you sure you want to delete all saved data?")){
-    results = [["Volunteer","Location","BIB","Date","Time"]];
+    results = [["Volunteer","Location","Date","BIB","Time"]];
     localStorage.removeItem("bibvoiceData");
     const table = document.getElementById("dataTable");
     table.innerHTML = "<tr><th>BIB Number</th><th>Time</th></tr>";
@@ -184,7 +185,7 @@ window.onload = function(){
     const table = document.getElementById("dataTable");
     for(let i=results.length-1;i>=1;i--){
       const row = table.insertRow(1);
-      row.insertCell(0).textContent = results[i][2];
+      row.insertCell(0).textContent = results[i][3];
       row.insertCell(1).textContent = results[i][4];
     }
   }
